@@ -2,43 +2,28 @@ import corn from 'node-cron'
 import fs from 'fs'
 import axios from 'axios'
 
-import { dataHadits } from '../../services/get/getService'
+import { dataProvinsi } from '../../services/get/getService'
 
-export const getShadist = async (req, res) => {
-    const { params } = req
+export const runCron = async (req, res) => {
+    const province = await dataProvinsi()
 
-    if (!params.id) {
-        res.send({
-            message: 'Required parameter ID of Hadits'
-        })
-    }
-    const hadits = await dataHadits()
-    let index = params.id
-    console.log('Params: ', index)
-
+    // res.json(province)
     let jsonData = []
-    let kitab
-    const numberHadits = (hadits[index].totalHadits).split('-')
-    let numberOfHadits = Number(numberHadits[0])
-    const totalHadits =  Number(numberHadits[1])
 
+    const totalData = province.length - 1
+    let totalGet = 0
     corn.schedule('*/5 * * * * *', async () => {
-        kitab = hadits[index].name
-        if (numberOfHadits < totalHadits) {
-            console.log('Total Hadits ', totalHadits)
-            const query = `http://api.carihadis.com/?kitab=${kitab}&id=${numberOfHadits}`
-
-            console.log('GET ', query)
+        if (totalData > totalGet) {
+            console.log('Get Data ', totalGet, province[totalGet].nama)
+            const query = `https://dev.farizdotid.com/api/daerahindonesia/kota?id_provinsi=${province[totalGet].id}`
             const response = await axios.get(query)
-            jsonData.push(response.data.data['1'] || {})
-            numberOfHadits += 1
+            // console.log(response.data.kota_kabupaten)
 
-        } else {
+            fs.writeFileSync(`src/public/data_json/${province[totalGet].nama}.json`, JSON.stringify(response.data.kota_kabupaten || {}))
+            totalGet += 1
+        }else {
             console.log('Selesai')
-            console.log(jsonData)
-            fs.writeFileSync(`src/public/data_json/${kitab}.json`, JSON.stringify(jsonData))
-            index += 1,
-            numberOfHadits = 1
+            totalGet = 0
         }
     })
 }

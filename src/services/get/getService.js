@@ -1,8 +1,8 @@
 import fs from 'fs'
 
-export const dataHadits = async () => {
+export const dataProvinsi = async () => {
     try {
-        const jsonString = fs.readFileSync('src/public/hadits.json')
+        const jsonString = fs.readFileSync('src/public/province.json')
         const data = JSON.parse(jsonString)
         return data
     } catch (err) {
