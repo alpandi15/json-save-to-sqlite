@@ -2,7 +2,14 @@ import corn from 'node-cron'
 import fs from 'fs'
 import axios from 'axios'
 
-import { dataProvinsi, dataKecamatan, getFilenameProv, dataDetailKecamatan } from '../../services/get/getService'
+import {
+    dataProvinsi,
+    listKecamatanDetail,
+    getFilenameProv,
+    dataDetailKecamatan,
+    getFileDirectory,
+    readFileJson
+} from '../../services/get/getService'
 
 export const runCron = async (req, res) => {
     const province = await dataProvinsi()
@@ -70,16 +77,80 @@ export const getKecamatan = async (req, res) => {
                 task.destroy()
             }
         }
-        // if (totalData > totalGet) {
-        //     console.log(dataProvinsi[totalGet])
-        //     console.log('Data Kecamatan ', detailKecamatan)
-        //     totalGet += 1
-        // }else {
-        //     console.log('Selesai')
-        //     totalGet = 0
-        //     totalKecamatan += 1
-        //     task.destroy()
-        // }
     })
-    // res.json(dataProvinsi)
+}
+
+const dataProvinsiList = async (index) => {
+    const province = await listKecamatanDetail()
+
+    if (index < (province.length - 1)) {
+        let provinceName = province[index].nama
+        console.log('Provinsi ', provinceName)
+        const kecamatanList = await getFileDirectory(`${global.appRoot}/src/public/kecamatan/${provinceName}`)
+
+        const totalKecamatan = kecamatanList.length - 1
+        let countKecamatanGet = 0
+
+        let detailKabupaten = []
+        let totalData = 0
+        let totalGet = 0
+
+        // jalannkan cron
+        const task = corn.schedule('*/3 * * * * *', async () => {
+            if (detailKabupaten.length === 0) {
+                console.log('Get List ', kecamatanList[countKecamatanGet])
+                const directory = `${global.appRoot}/src/public/kecamatan/${provinceName}/${kecamatanList[countKecamatanGet]}`
+                detailKabupaten = await readFileJson(directory)
+                totalData = detailKabupaten.length - 1
+
+            } else {
+                if ((totalData >= totalGet) || (totalKecamatan >= countKecamatanGet)) {
+                    console.log('Getting ', detailKabupaten[totalGet])
+                    const query = `https://dev.farizdotid.com/api/daerahindonesia/kelurahan?id_kecamatan=${detailKabupaten[totalGet].id}`
+                    const response = await axios.get(query)
+
+                    const namaKelurahan = detailKabupaten[totalGet].nama
+                    const namaKabupaten = kecamatanList[countKecamatanGet].split('.')[0]
+                    fs.writeFileSync(`${global.appRoot}/src/public/kelurahan/${provinceName}/${namaKabupaten}/${namaKelurahan}.json`, JSON.stringify(response.data.kelurahan || {}))
+    
+                    totalGet += 1
+
+                    if ((totalData < totalGet)) {
+                        detailKabupaten = []
+                        totalGet = 0
+                        countKecamatanGet += 1
+
+                        const namaKabupatenNext = kecamatanList[countKecamatanGet].split('.')[0]
+                        console.log('Create Kelurahan ', namaKabupatenNext)
+        
+                        const dir = `${global.appRoot}/src/public/kelurahan/${provinceName}/${namaKabupatenNext}`
+                        // console.log(dir)
+                        if (!fs.existsSync(dir)){
+                            fs.mkdirSync(dir);
+                        }
+                        console.log('Ganti Kabupaten ', namaKabupaten)
+                    }
+                } else {
+                    task.destroy()
+                    return index + 1
+                }
+            }
+        })
+    }
+    // return false
+}
+
+const cronGetKecamatan = async (index) => {
+    const provinsiSucc = await dataProvinsiList(index)
+    console.log('Cron ', provinsiSucc)
+    if (provinsiSucc && provinsiSucc < 1) {
+        await cronGetKecamatan(provinsiSucc) // callback
+    } else {
+        return true
+    }
+}
+
+export const getKelurahan = async (req, res) => {
+    const province = await cronGetKecamatan(0)
+    res.json(province)
 }

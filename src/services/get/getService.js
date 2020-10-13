@@ -3,6 +3,27 @@ import path from 'path'
 
 const basename = path.basename(module.filename)
 
+export const getFileDirectory = (directory) => {
+    let fileName = []
+    fs.readdirSync(directory)
+    .filter((file) => (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-4) === 'json'))
+    .forEach((file) => {
+        fileName.push(file)
+    })
+
+    return fileName
+}
+
+export const readFileJson = async (directory) => {
+    try {
+        const jsonString = fs.readFileSync(directory)
+        const data = JSON.parse(jsonString)
+        return data
+    } catch (err) {
+        return err
+    }
+}
+
 export const getFilenameProv = () => {
     let fileName = []
     fs.readdirSync(`${global.appRoot}/src/public/data_json`)
@@ -41,4 +62,8 @@ export const dataDetailKecamatan = async (filename) => {
     } catch (err) {
         return err
     }
+}
+
+export const listKecamatanDetail = async () => {
+    return dataProvinsi()
 }
