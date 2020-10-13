@@ -84,6 +84,8 @@ const onListening = () => {
   }
 
 
+global.appRoot = path.resolve(__dirname)
+
 /**
  * Listen on provided port, on all network interfaces.
  */
