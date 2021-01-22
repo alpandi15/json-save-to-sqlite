@@ -1,7 +1,7 @@
-import hadits from './v1/getRouter'
+import sqlite from './v1/saveSqlite'
 
 const routes = (app) => {
-  app.use(hadits)
+  app.use(sqlite)
 }
 
 export default routes
