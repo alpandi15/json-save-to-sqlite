@@ -19,7 +19,8 @@
     "helmet": "^4.1.1",
     "http": "^0.0.1-security",
     "node-cron": "^2.0.3",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "sqlite3": "^5.0.1"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
